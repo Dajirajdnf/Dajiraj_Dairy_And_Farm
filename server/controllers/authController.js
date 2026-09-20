@@ -15,6 +15,19 @@ const login = async (req, res, next) => {
       });
     }
 
+    // If no admin exists in the system (e.g. fresh database deployment), bootstrap default admin
+    const adminCount = await User.countDocuments({ role: 'admin' });
+    if (adminCount === 0) {
+      await User.create({
+        name: 'Admin',
+        email: process.env.ADMIN_EMAIL || 'admin@dajiraj.com',
+        phone: process.env.ADMIN_PHONE || '9876543210',
+        passwordHash: process.env.ADMIN_PASSWORD || 'admin123',
+        role: 'admin',
+        active: true,
+      });
+    }
+
     // Find user by email or phone and include password
     const user = await User.findOne({
       $or: [

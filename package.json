@@ -11,6 +11,7 @@
     "postinstall": "cd client && npm install",
     "build": "cd client && npm run build",
     "seed": "cd server && npm run seed",
+    "seed:admin": "node server/seedAdmin.js",
     "start": "cd server && npm start"
   },
   "dependencies": {
