@@ -1,3 +1,0 @@
-# 
-
-{"success":true,"message":"Dajiraj Dairy & Farm API is running","timestamp":"2026-09-05T10:11:56.071Z"}
