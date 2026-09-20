@@ -75,8 +75,22 @@ app.use(sanitizeRequest);
 
 // Lazy Database Connection middleware (vital for Vercel serverless lambdas)
 app.use(async (req, res, next) => {
-  // Skip DB check for simple health check
-  if (req.path === '/api/health') return next();
+  // Skip DB hard requirement for health check and public read requests
+  const isPublicRead = req.method === 'GET' && (
+    req.path.includes('/settings/public') ||
+    req.path.includes('/products') ||
+    req.path === '/api/health'
+  );
+
+  if (isPublicRead) {
+    try {
+      await connectDB();
+    } catch (_) {
+      // Allow public read routes to serve fallback content even if DB is cold
+    }
+    return next();
+  }
+
   try {
     await connectDB();
     next();
@@ -118,12 +132,23 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/cron', cronRoutes);
 
-// Health check
+// Health check with live diagnostics
 app.get('/api/health', (req, res) => {
+  const mongoose = require('mongoose');
+  const readyStates = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+  const dbState = readyStates[mongoose.connection.readyState] || 'unknown';
+
   res.json({
     success: true,
     message: 'Dajiraj Dairy & Farm API is running',
     environment: config.nodeEnv,
+    database: {
+      status: dbState,
+      hasEnvUri: Boolean(process.env.MONGODB_URI),
+      configuredHost: config.mongodbUri
+        ? config.mongodbUri.replace(/mongodb(\+srv)?:\/\/[^@]+@/, 'mongodb$1://***:***@')
+        : 'none',
+    },
     timestamp: new Date(),
   });
 });
