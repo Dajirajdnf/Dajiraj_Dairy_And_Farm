@@ -155,4 +155,52 @@ const changePassword = async (req, res, next) => {
   }
 };
 
-module.exports = { login, getMe, changePassword };
+// @desc    Initialize Super Admin account (safe one-click bootstrap)
+// @route   GET /api/auth/init-admin
+const initAdmin = async (req, res, next) => {
+  try {
+    const existingAdmin = await User.findOne({ role: 'admin' });
+
+    if (existingAdmin) {
+      return res.json({
+        success: true,
+        message: 'Admin account already exists in your database',
+        admin: {
+          name: existingAdmin.name,
+          email: existingAdmin.email,
+          phone: existingAdmin.phone,
+        },
+      });
+    }
+
+    const email = (process.env.ADMIN_EMAIL || 'admin@dajiraj.com').toLowerCase();
+    const phone = process.env.ADMIN_PHONE || '9876543210';
+    const password = process.env.ADMIN_PASSWORD || 'admin123';
+
+    const admin = await User.create({
+      name: 'Super Admin',
+      email,
+      phone,
+      passwordHash: password,
+      role: 'admin',
+      active: true,
+    });
+
+    const Settings = require('../models/Settings');
+    await Settings.getSettings();
+
+    res.status(201).json({
+      success: true,
+      message: 'Super Admin successfully created in your database!',
+      credentials: {
+        email: admin.email,
+        phone: admin.phone,
+        password: password,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { login, getMe, changePassword, initAdmin };
