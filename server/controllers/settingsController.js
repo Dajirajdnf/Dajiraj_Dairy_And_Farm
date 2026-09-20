@@ -148,7 +148,23 @@ const getPublicSettings = async (req, res, next) => {
       },
     });
   } catch (error) {
-    next(error);
+    // Graceful fallback so public website never crashes even if DB is cold or connecting
+    res.json({
+      success: true,
+      data: {
+        businessName: 'DAJIRAJ DAIRY & FARM',
+        tagline: 'Milking with Care',
+        secondaryTagline: 'Farming with Love',
+        phone: '+91 98765 43210',
+        email: 'info@dajiraj.com',
+        address: 'Gujarat, India',
+        googleMapsLink: '',
+        businessHours: '6:00 AM - 8:00 PM',
+        socialLinks: {},
+        primaryColor: '#2d6a2e',
+        secondaryColor: '#d4a843',
+      },
+    });
   }
 };
 

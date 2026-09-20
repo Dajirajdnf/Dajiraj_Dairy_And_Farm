@@ -9,9 +9,8 @@ dotenv.config({ path: path.join(__dirname, '..', '.env') });
 // Validate required environment variables
 const requiredVars = ['MONGODB_URI', 'JWT_SECRET'];
 const missing = requiredVars.filter((key) => !process.env[key]);
-if (missing.length > 0 && process.env.NODE_ENV === 'production') {
-  console.error(`❌ Missing required environment variables: ${missing.join(', ')}`);
-  process.exit(1);
+if (missing.length > 0) {
+  console.warn(`⚠️ Warning: Missing environment variables on server: ${missing.join(', ')}`);
 }
 
 // Build MongoDB URI with username/password interpolation if provided

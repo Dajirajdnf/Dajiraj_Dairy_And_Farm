@@ -38,6 +38,19 @@ const errorHandler = (err, req, res, next) => {
     return res.status(401).json({ success: false, message: 'Token expired' });
   }
 
+  // Database connection errors
+  if (
+    err.name === 'MongooseServerSelectionError' ||
+    err.message?.includes('ECONNREFUSED') ||
+    err.message?.includes('buffering timed out') ||
+    err.message?.includes('MONGODB_URI')
+  ) {
+    return res.status(503).json({
+      success: false,
+      message: 'Database connection failed. Please ensure MONGODB_URI is configured in Vercel Settings → Environment Variables and that MongoDB Atlas Network Access is set to allow access from anywhere (0.0.0.0/0).',
+    });
+  }
+
   // Default error
   const statusCode = error.statusCode || 500;
   const isProd = config.nodeEnv === 'production';
