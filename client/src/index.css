@@ -1,0 +1,146 @@
+@import "tailwindcss";
+
+/* ===== DAJIRAJ DAIRY & FARM — Brand Design System ===== */
+@theme {
+  /* Primary - Natural Green */
+  --color-primary-50: #f0f9f0;
+  --color-primary-100: #dcf0dc;
+  --color-primary-200: #b8e0b8;
+  --color-primary-300: #7cc47c;
+  --color-primary-400: #4ca84c;
+  --color-primary-500: #2d6a2e;
+  --color-primary-600: #245624;
+  --color-primary-700: #1b421b;
+  --color-primary-800: #143214;
+  --color-primary-900: #0d220d;
+
+  /* Secondary - Warm Golden */
+  --color-golden-50: #fdf9ee;
+  --color-golden-100: #faf0d0;
+  --color-golden-200: #f5e0a0;
+  --color-golden-300: #eece6e;
+  --color-golden-400: #d4a843;
+  --color-golden-500: #b8892a;
+  --color-golden-600: #956e1f;
+  --color-golden-700: #725318;
+  --color-golden-800: #4f3a11;
+  --color-golden-900: #30230a;
+
+  /* Earth - Brown tones */
+  --color-earth-50: #faf6f1;
+  --color-earth-100: #f0e6d6;
+  --color-earth-200: #e0ccad;
+  --color-earth-300: #c9a97a;
+  --color-earth-400: #a88654;
+  --color-earth-500: #8b6b3a;
+  --color-earth-600: #6e542e;
+  --color-earth-700: #533f22;
+  --color-earth-800: #3a2c18;
+  --color-earth-900: #231a0f;
+
+  /* Accent - Orange/Red (turban inspired) */
+  --color-accent-50: #fef4ee;
+  --color-accent-100: #fde4d0;
+  --color-accent-200: #fbc8a0;
+  --color-accent-300: #f7a468;
+  --color-accent-400: #e8833a;
+  --color-accent-500: #d4682a;
+  --color-accent-600: #b05020;
+  --color-accent-700: #8c3c18;
+  --color-accent-800: #6a2d12;
+  --color-accent-900: #4a1f0c;
+
+  /* Status Colors */
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+
+  /* Fonts */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Outfit', 'Inter', system-ui, sans-serif;
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-card-hover: 0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.12);
+  --shadow-xl: 0 20px 50px rgba(0, 0, 0, 0.15);
+
+  /* Border Radius */
+  --radius-card: 12px;
+  --radius-button: 8px;
+  --radius-input: 8px;
+  --radius-badge: 20px;
+
+  /* Animations */
+  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-slide-up: slide-up 0.3s ease-out;
+  --animate-scale-in: scale-in 0.2s ease-out;
+}
+
+/* ===== Global Styles ===== */
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    color: #1a1a2e;
+    background: #fafbfc;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    line-height: 1.2;
+  }
+}
+
+/* ===== Keyframes ===== */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ===== Scrollbar Styling ===== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary-300);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary-400);
+}

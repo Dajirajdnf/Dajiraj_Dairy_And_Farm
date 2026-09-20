@@ -1,0 +1,36 @@
+node_modules/
+
+# Environment — NEVER commit real credentials
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+# Allow the example template
+!.env.example
+
+# Build artifacts
+client/dist/
+build/
+dist/
+
+# Uploads and generated files
+server/uploads/
+server/tmp/
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/settings.json
+.idea/
+
+# Vercel
+.vercel/

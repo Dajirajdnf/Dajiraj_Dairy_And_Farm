@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Invoice <%= invoice.invoiceNumber %> — <%= business.businessName %></title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 13px;
+      color: #1a1a1a;
+      background: #fff;
+      padding: 0;
+    }
+
+    /* ===== Header ===== */
+    .invoice-header {
+      background: linear-gradient(135deg, #1e5c1f 0%, #2d6a2e 60%, #3a7a3b 100%);
+      color: white;
+      padding: 28px 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand-block .business-name {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      color: #ffffff;
+    }
+    .brand-block .tagline {
+      font-size: 11px;
+      color: #d4a843;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      margin-top: 3px;
+    }
+    .brand-block .secondary-tagline {
+      font-size: 10px;
+      color: #a8d0a8;
+      margin-top: 2px;
+    }
+    .invoice-badge {
+      text-align: right;
+    }
+    .invoice-badge .invoice-label {
+      font-size: 28px;
+      font-weight: 900;
+      color: #d4a843;
+      letter-spacing: 3px;
+    }
+    .invoice-badge .invoice-number {
+      font-size: 13px;
+      color: #c8e6c9;
+      font-family: monospace;
+      margin-top: 3px;
+    }
+    .invoice-badge .status-badge {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 3px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .status-paid { background: #4caf50; color: white; }
+    .status-unpaid { background: #ff9800; color: white; }
+    .status-partial { background: #2196f3; color: white; }
+    .status-void { background: #9e9e9e; color: white; }
+
+    /* ===== Meta row ===== */
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      background: #f8fdf8;
+      padding: 18px 36px;
+      border-bottom: 2px solid #e8f5e9;
+      gap: 20px;
+    }
+    .meta-block label {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #888;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .meta-block .value {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+    .meta-block .sub-value {
+      font-size: 11px;
+      color: #666;
+      margin-top: 1px;
+    }
+
+    /* ===== Main content ===== */
+    .content {
+      padding: 24px 36px;
+    }
+
+    /* Parties */
+    .parties {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    .party-block {
+      flex: 1;
+      background: #f9f9f9;
+      border-radius: 8px;
+      padding: 14px 16px;
+      border: 1px solid #eee;
+    }
+    .party-block.from {
+      border-left: 4px solid #2d6a2e;
+    }
+    .party-block.to {
+      border-left: 4px solid #d4a843;
+    }
+    .party-block label {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #888;
+      display: block;
+      margin-bottom: 6px;
+    }
+    .party-block .name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+    .party-block .detail {
+      font-size: 11px;
+      color: #555;
+      margin-top: 2px;
+      line-height: 1.5;
+    }
+
+    /* ===== Line Items Table ===== */
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #2d6a2e;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .section-title::before {
+      content: '';
+      display: inline-block;
+      width: 3px;
+      height: 14px;
+      background: #2d6a2e;
+      border-radius: 2px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #e0e0e0;
+      margin-bottom: 20px;
+    }
+    thead {
+      background: #2d6a2e;
+      color: white;
+    }
+    thead th {
+      padding: 10px 14px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      text-align: left;
+    }
+    thead th:last-child { text-align: right; }
+    tbody tr {
+      border-bottom: 1px solid #f0f0f0;
+    }
+    tbody tr:nth-child(even) {
+      background: #f9fcf9;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody td {
+      padding: 9px 14px;
+      font-size: 12px;
+      color: #333;
+    }
+    tbody td:last-child { text-align: right; font-weight: 600; }
+    tfoot tr {
+      background: #f0f7f0;
+    }
+    tfoot td {
+      padding: 9px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      border-top: 2px solid #c8e6c9;
+    }
+    tfoot td:last-child { text-align: right; color: #2d6a2e; }
+
+    /* ===== Financial Summary ===== */
+    .financial-block {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 24px;
+    }
+    .financial-table {
+      width: 280px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .financial-table .fin-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 14px;
+      font-size: 12px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .financial-table .fin-row:last-child { border-bottom: none; }
+    .financial-table .fin-row.total {
+      background: #2d6a2e;
+      color: white;
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .financial-table .fin-row.paid { color: #388e3c; font-weight: 600; }
+    .financial-table .fin-row.due { color: #e53935; font-weight: 700; background: #fff5f5; }
+    .fin-row span:last-child { font-weight: 600; }
+
+    /* ===== Notes ===== */
+    .notes-block {
+      background: #f9fcf9;
+      border: 1px solid #e8f5e9;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 24px;
+    }
+    .notes-block label {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #2d6a2e;
+      display: block;
+      margin-bottom: 5px;
+    }
+    .notes-block p {
+      font-size: 11px;
+      color: #555;
+      line-height: 1.6;
+    }
+
+    /* ===== Footer ===== */
+    .invoice-footer {
+      background: #f0f7f0;
+      border-top: 2px solid #c8e6c9;
+      padding: 14px 36px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .invoice-footer .brand-mini {
+      font-size: 11px;
+      font-weight: 700;
+      color: #2d6a2e;
+    }
+    .invoice-footer .brand-mini small {
+      display: block;
+      font-size: 9px;
+      font-weight: 400;
+      color: #888;
+      margin-top: 1px;
+    }
+    .invoice-footer .footer-note {
+      font-size: 10px;
+      color: #888;
+      text-align: right;
+    }
+
+    @media print {
+      body { padding: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="invoice-header">
+    <div class="brand-block">
+      <div class="business-name"><%= business.businessName %></div>
+      <div class="tagline"><%= business.tagline %></div>
+      <div class="secondary-tagline"><%= business.secondaryTagline %></div>
+      <% if (business.phone) { %>
+        <div style="font-size:10px;color:#a8d0a8;margin-top:6px;">📞 <%= business.phone %></div>
+      <% } %>
+      <% if (business.email) { %>
+        <div style="font-size:10px;color:#a8d0a8;">✉ <%= business.email %></div>
+      <% } %>
+      <% if (business.address) { %>
+        <div style="font-size:10px;color:#a8d0a8;max-width:260px;">📍 <%= business.address %></div>
+      <% } %>
+    </div>
+    <div class="invoice-badge">
+      <div class="invoice-label">INVOICE</div>
+      <div class="invoice-number"><%= invoice.invoiceNumber %></div>
+      <div>
+        <span class="status-badge status-<%= invoice.paymentStatus === 'Paid' ? 'paid' : invoice.paymentStatus === 'Partially Paid' ? 'partial' : invoice.paymentStatus === 'Void' ? 'void' : 'unpaid' %>">
+          <%= invoice.paymentStatus %>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- META ROW -->
+  <div class="meta-row">
+    <div class="meta-block">
+      <label>Invoice Date</label>
+      <div class="value"><%= new Date(invoice.invoiceDate || invoice.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) %></div>
+    </div>
+    <div class="meta-block">
+      <label>Billing Period</label>
+      <div class="value">
+        <%= new Date(invoice.billingPeriodStart).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) %>
+        — <%= new Date(invoice.billingPeriodEnd).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) %>
+      </div>
+    </div>
+    <div class="meta-block">
+      <label>Total Quantity</label>
+      <div class="value"><%= ((invoice.totalQuantityMl || 0) / 1000).toFixed(2) %> Litres</div>
+    </div>
+    <div class="meta-block">
+      <label>Grand Total</label>
+      <div class="value" style="color:#2d6a2e;font-size:16px;">₹<%= (invoice.grandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }) %></div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="content">
+
+    <!-- Parties -->
+    <div class="parties">
+      <div class="party-block from">
+        <label>From</label>
+        <div class="name"><%= business.businessName %></div>
+        <% if (business.phone) { %><div class="detail">📞 <%= business.phone %></div><% } %>
+        <% if (business.email) { %><div class="detail">✉ <%= business.email %></div><% } %>
+        <% if (business.address) { %><div class="detail">📍 <%= business.address %></div><% } %>
+      </div>
+      <div class="party-block to">
+        <label>Billed To</label>
+        <div class="name"><%= invoice.customerSnapshot ? invoice.customerSnapshot.name : (invoice.customer ? invoice.customer.name : 'Customer') %></div>
+        <% var snap = invoice.customerSnapshot || invoice.customer || {}; %>
+        <% if (snap.phone) { %><div class="detail">📞 <%= snap.phone %></div><% } %>
+        <% if (snap.email) { %><div class="detail">✉ <%= snap.email %></div><% } %>
+        <% if (snap.address) { %><div class="detail">📍 <%= snap.address %></div><% } %>
+      </div>
+    </div>
+
+    <!-- Delivery Line Items -->
+    <div class="section-title">Milk Delivery Details</div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Date</th>
+          <th>Delivered Qty</th>
+          <th>Rate / Litre</th>
+          <th>Amount (₹)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (invoice.lineItems && invoice.lineItems.length > 0) { %>
+          <% invoice.lineItems.forEach(function(item, idx) { %>
+            <tr>
+              <td style="color:#999;"><%= idx + 1 %></td>
+              <td><%= new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) %></td>
+              <td><strong><%= ((item.quantityMl || 0) / 1000).toFixed(2) %> L</strong> <span style="color:#999;font-size:10px;">(<%= item.quantityMl %> ml)</span></td>
+              <td>₹<%= (item.ratePer || 0).toFixed(2) %></td>
+              <td>₹<%= (item.amount || 0).toFixed(2) %></td>
+            </tr>
+          <% }); %>
+        <% } else { %>
+          <tr>
+            <td colspan="5" style="text-align:center;color:#888;padding:16px;">
+              Monthly Summary: <%= ((invoice.totalQuantityMl || 0) / 1000).toFixed(2) %> L @ ₹<%= (invoice.rate || 0).toFixed(2) %>/L
+            </td>
+          </tr>
+        <% } %>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2" style="text-align:right;">TOTAL</td>
+          <td><strong><%= ((invoice.totalQuantityMl || 0) / 1000).toFixed(2) %> L</strong></td>
+          <td></td>
+          <td>₹<%= (invoice.subtotal || invoice.grandTotal || 0).toFixed(2) %></td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <!-- Financial Summary -->
+    <div class="financial-block">
+      <div class="financial-table">
+        <div class="fin-row">
+          <span>Subtotal</span>
+          <span>₹<%= (invoice.subtotal || invoice.grandTotal || 0).toFixed(2) %></span>
+        </div>
+        <% if (invoice.adjustments && invoice.adjustments !== 0) { %>
+        <div class="fin-row">
+          <span>Adjustments</span>
+          <span>₹<%= (invoice.adjustments || 0).toFixed(2) %></span>
+        </div>
+        <% } %>
+        <div class="fin-row total">
+          <span>GRAND TOTAL</span>
+          <span>₹<%= (invoice.grandTotal || 0).toFixed(2) %></span>
+        </div>
+        <div class="fin-row paid">
+          <span>Amount Paid</span>
+          <span>₹<%= (invoice.paidAmount || 0).toFixed(2) %></span>
+        </div>
+        <div class="fin-row due">
+          <span>Balance Due</span>
+          <span>₹<%= (invoice.remainingAmount || 0).toFixed(2) %></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="notes-block">
+      <label>Thank You Note</label>
+      <p>
+        Thank you for being a valued customer of <strong><%= business.businessName %></strong>.
+        We appreciate your trust in our fresh dairy products. Please make payment at your earliest convenience.
+        For any queries, contact us at <%= business.phone || business.email || 'the above contact details' %>.
+      </p>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <div class="invoice-footer">
+    <div class="brand-mini">
+      <%= business.businessName %>
+      <small><%= business.tagline %> • <%= business.secondaryTagline %></small>
+    </div>
+    <div class="footer-note">
+      <div>Invoice #<%= invoice.invoiceNumber %></div>
+      <div>Generated on <%= new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) %></div>
+    </div>
+  </div>
+
+</body>
+</html>

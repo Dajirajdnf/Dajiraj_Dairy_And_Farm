@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "client/dist",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/daily-deliveries",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/monthly-invoices",
+      "schedule": "5 0 1 * *"
+    }
+  ]
+}
