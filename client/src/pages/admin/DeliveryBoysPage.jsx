@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { deliveryBoyAPI } from '../../services/api';
-import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineSearch, HiOutlineTruck, HiOutlinePhone, HiOutlineMail } from 'react-icons/hi';
+import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineSearch, HiOutlineTruck, HiOutlinePhone, HiOutlineMail, HiOutlineBan, HiOutlineCheckCircle } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 
 const DeliveryBoysPage = () => {
   const [deliveryBoys, setDeliveryBoys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingBoy, setEditingBoy] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -60,9 +61,9 @@ const DeliveryBoysPage = () => {
       phone: boy.phone || '',
       email: boy.email || '',
       password: '',
-      vehicleNumber: boy.vehicleNumber || '',
+      vehicleNumber: boy.vehicleNumber || boy.vehicleInfo || '',
       assignedArea: boy.assignedArea || '',
-      status: boy.status || 'active',
+      status: boy.active !== false ? 'active' : 'inactive',
     });
     setModalOpen(true);
   };
@@ -71,7 +72,11 @@ const DeliveryBoysPage = () => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const payload = { ...formData };
+      const payload = {
+        ...formData,
+        active: formData.status === 'active',
+        vehicleInfo: formData.vehicleNumber,
+      };
       if (!payload.password && editingBoy) {
         delete payload.password;
       }
@@ -91,22 +96,41 @@ const DeliveryBoysPage = () => {
     }
   };
 
+  const handleToggleStatus = async (boy) => {
+    const isCurrentlyActive = boy.active !== false;
+    const newActive = !isCurrentlyActive;
+    try {
+      await deliveryBoyAPI.toggleStatus(boy._id, newActive);
+      toast.success(`Delivery boy marked as ${newActive ? 'Active' : 'Inactive'}`);
+      fetchDeliveryBoys();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update status');
+    }
+  };
+
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to deactivate/delete this delivery boy?')) return;
+    if (!window.confirm('Are you sure you want to PERMANENTLY delete this delivery boy? This action cannot be undone.')) return;
     try {
       await deliveryBoyAPI.delete(id);
-      toast.success('Delivery boy removed');
+      toast.success('Delivery boy permanently deleted');
       fetchDeliveryBoys();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to delete delivery boy');
     }
   };
 
-  const filteredBoys = deliveryBoys.filter(boy =>
-    boy.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    boy.phone?.includes(searchTerm) ||
-    boy.assignedArea?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredBoys = deliveryBoys.filter(boy => {
+    const matchSearch = boy.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      boy.phone?.includes(searchTerm) ||
+      boy.assignedArea?.toLowerCase().includes(searchTerm.toLowerCase());
+    const isAct = boy.active !== false;
+    const matchStatus = statusFilter === 'all'
+      ? true
+      : statusFilter === 'active'
+        ? isAct
+        : !isAct;
+    return matchSearch && matchStatus;
+  });
 
   return (
     <div className="space-y-6">
@@ -125,16 +149,27 @@ const DeliveryBoysPage = () => {
       </div>
 
       {/* Filter / Search Bar */}
-      <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-md">
-          <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <input
-            type="text"
-            placeholder="Search by name, phone, or route..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          />
+      <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3 flex-1 max-w-xl">
+          <div className="relative flex-1 min-w-[200px]">
+            <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search by name, phone, or route..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 bg-white"
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active Only</option>
+            <option value="inactive">Inactive Only</option>
+          </select>
         </div>
         <div className="text-sm text-gray-500">
           Total: <span className="font-semibold text-gray-800">{filteredBoys.length}</span>
@@ -163,13 +198,28 @@ const DeliveryBoysPage = () => {
                   <div>
                     <h3 className="font-bold text-gray-900">{boy.name}</h3>
                     <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
-                      boy.status === 'active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-gray-100 text-gray-600'
+                      boy.active !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-gray-100 text-gray-600 border border-gray-200'
                     }`}>
-                      {boy.status}
+                      {boy.active !== false ? 'Active' : 'Inactive'}
                     </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleToggleStatus(boy)}
+                    className={`p-1.5 rounded-lg transition ${
+                      boy.active !== false
+                        ? 'text-amber-600 hover:bg-amber-50'
+                        : 'text-emerald-600 hover:bg-emerald-50'
+                    }`}
+                    title={boy.active !== false ? 'Deactivate Delivery Boy' : 'Activate Delivery Boy'}
+                  >
+                    {boy.active !== false ? (
+                      <HiOutlineBan className="w-4 h-4" />
+                    ) : (
+                      <HiOutlineCheckCircle className="w-4 h-4" />
+                    )}
+                  </button>
                   <button
                     onClick={() => handleOpenEdit(boy)}
                     className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
@@ -180,7 +230,7 @@ const DeliveryBoysPage = () => {
                   <button
                     onClick={() => handleDelete(boy._id)}
                     className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-                    title="Delete"
+                    title="Permanently Delete"
                   >
                     <HiOutlineTrash className="w-4 h-4" />
                   </button>

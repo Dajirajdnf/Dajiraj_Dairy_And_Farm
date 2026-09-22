@@ -50,10 +50,15 @@ const protect = async (req, res, next) => {
 // Authorize specific roles
 const authorize = (...roles) => {
   return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
+    const userRole = req.user?.role;
+    const isAuthorized = roles.includes(userRole) ||
+      (roles.includes('delivery') && userRole === 'delivery_boy') ||
+      (roles.includes('delivery_boy') && userRole === 'delivery');
+
+    if (!isAuthorized) {
       return res.status(403).json({
         success: false,
-        message: `Role '${req.user.role}' is not authorized to access this resource`,
+        message: 'You do not have permission to perform this action.',
       });
     }
     next();
@@ -64,18 +69,37 @@ const authorize = (...roles) => {
 const checkPermission = (permission) => {
   return (req, res, next) => {
     // Admins always have all permissions
-    if (req.user.role === 'admin') {
+    if (req.user?.role === 'admin') {
       return next();
     }
 
     // Staff need specific permission
-    if (req.user.role === 'staff' && req.user.permissions && req.user.permissions[permission]) {
-      return next();
+    if (req.user?.role === 'staff' && req.user.permissions) {
+      const perms = req.user.permissions;
+      let hasPerm = false;
+
+      if (Array.isArray(perms)) {
+        hasPerm = perms.includes(permission);
+        if (permission === 'products' && (perms.includes('products') || perms.includes('stock'))) hasPerm = true;
+        if (permission === 'stock' && (perms.includes('stock') || perms.includes('products'))) hasPerm = true;
+        if (permission === 'billing' && (perms.includes('billing') || perms.includes('invoices'))) hasPerm = true;
+        if (permission === 'invoices' && (perms.includes('invoices') || perms.includes('billing'))) hasPerm = true;
+      } else {
+        hasPerm = Boolean(perms[permission]);
+        if (permission === 'products' && (perms.products || perms.stock)) hasPerm = true;
+        if (permission === 'stock' && (perms.stock || perms.products)) hasPerm = true;
+        if (permission === 'billing' && (perms.billing || perms.invoices)) hasPerm = true;
+        if (permission === 'invoices' && (perms.invoices || perms.billing)) hasPerm = true;
+      }
+
+      if (hasPerm) {
+        return next();
+      }
     }
 
     return res.status(403).json({
       success: false,
-      message: `You don't have permission for '${permission}'`,
+      message: 'You do not have permission to perform this action.',
     });
   };
 };

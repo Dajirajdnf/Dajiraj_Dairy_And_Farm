@@ -2,7 +2,29 @@ const Customer = require('../models/Customer');
 const Delivery = require('../models/Delivery');
 const Settings = require('../models/Settings');
 const { logAudit } = require('../utils/auditLogger');
+const { sendDeliveryConfirmationEmail } = require('../services/emailService');
 const { startOfDay, endOfDay } = require('date-fns');
+
+// Helper: send milk delivery confirmation email safely in background
+const triggerDeliveryConfirmationEmail = async (deliveryId) => {
+  try {
+    const fullDelivery = await Delivery.findById(deliveryId)
+      .populate('customer', 'name email phone')
+      .populate('deliveryBoy', 'name phone');
+
+    if (fullDelivery?.customer?.email) {
+      await sendDeliveryConfirmationEmail(
+        fullDelivery,
+        fullDelivery.customer,
+        fullDelivery.deliveryBoy
+      );
+    }
+  } catch (err) {
+    // Log failure without crashing or leaking sensitive credentials
+    console.error('Failed to send milk delivery confirmation email:', err.message);
+  }
+};
+
 
 // @desc    Generate today's deliveries for all active customers
 // @route   POST /api/deliveries/generate-today
@@ -253,6 +275,9 @@ const markComplete = async (req, res, next) => {
     if (req.body.notes) delivery.notes = String(req.body.notes).slice(0, 300);
     await delivery.save();
 
+    // Trigger confirmation email asynchronously to customer
+    triggerDeliveryConfirmationEmail(delivery._id).catch(() => {});
+
     res.json({
       success: true,
       message: 'Delivery marked as completed',
@@ -276,7 +301,13 @@ const updateDeliveryStatus = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Delivery not found' });
     }
 
-    if (status && VALID_STATUSES.includes(status)) delivery.status = status;
+    const prevStatus = delivery.status;
+    if (status && VALID_STATUSES.includes(status)) {
+      delivery.status = status;
+      if (status === 'Delivered' && !delivery.deliveredAt) {
+        delivery.deliveredAt = new Date();
+      }
+    }
     if (notes) delivery.notes = String(notes).slice(0, 300);
     if (finalQuantityMl !== undefined) {
       const qty = parseFloat(finalQuantityMl);
@@ -287,6 +318,11 @@ const updateDeliveryStatus = async (req, res, next) => {
     }
 
     await delivery.save();
+
+    // Trigger confirmation email if transitioned to Delivered
+    if (delivery.status === 'Delivered' && prevStatus !== 'Delivered') {
+      triggerDeliveryConfirmationEmail(delivery._id).catch(() => {});
+    }
 
     logAudit({
       action: 'DELIVERY_STATUS_UPDATED',

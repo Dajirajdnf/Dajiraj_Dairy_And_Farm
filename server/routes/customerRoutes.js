@@ -8,7 +8,7 @@ const {
   reorderCustomerValidator,
 } = require('../validators/customerValidators');
 const {
-  getCustomers, getCustomer, createCustomer, updateCustomer, deleteCustomer, reorderCustomers,
+  getCustomers, getCustomer, createCustomer, updateCustomer, deleteCustomer, toggleCustomerStatus, reorderCustomers,
 } = require('../controllers/customerController');
 
 router.use(protect);
@@ -19,6 +19,7 @@ router.post('/', checkPermission('customers'), validate(createCustomerValidator)
 router.put('/reorder', checkPermission('customers'), validate(reorderCustomerValidator), reorderCustomers);
 router.get('/:id', checkPermission('customers'), getCustomer);
 router.put('/:id', checkPermission('customers'), validate(updateCustomerValidator), updateCustomer);
-router.delete('/:id', authorize('admin'), deleteCustomer);
+router.patch('/:id/status', checkPermission('customers'), toggleCustomerStatus);
+router.delete('/:id', checkPermission('customers'), deleteCustomer);
 
 module.exports = router;

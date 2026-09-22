@@ -37,8 +37,8 @@ const HomePage = () => {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28 lg:py-36">
           <div className="max-w-3xl mx-auto text-center" style={{ animation: 'slide-up 0.6s ease-out' }}>
             {/* Logo */}
-            <div className="w-20 h-20 md:w-24 md:h-24 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-6 backdrop-blur-sm border border-white/10">
-              <GiCow className="text-golden-400 text-4xl md:text-5xl" />
+            <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden flex items-center justify-center mx-auto mb-6 shadow-lg bg-white/95 p-1 border border-white/20">
+              <img src="/assets/dajiraj_logo.png" alt="Dajiraj Dairy & Farm" className="w-full h-full object-contain" />
             </div>
 
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 leading-tight">

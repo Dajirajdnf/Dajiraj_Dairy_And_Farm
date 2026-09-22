@@ -28,6 +28,7 @@ const AdminSidebar = () => {
     { name: 'Staff', path: '/admin/staff', icon: HiOutlineUserGroup },
     { name: 'Products', path: '/admin/products', icon: HiOutlineCube },
     { name: 'Stock', path: '/admin/stock', icon: HiOutlineArchive },
+    { name: 'Retail Billing', path: '/admin/retail-billing', icon: HiOutlineClipboardList },
     { name: 'Invoices', path: '/admin/invoices', icon: HiOutlineDocumentText },
     { name: 'Reports', path: '/admin/reports', icon: HiOutlineChartBar },
     { name: 'Inquiries', path: '/admin/inquiries', icon: HiOutlineMail },
@@ -39,8 +40,10 @@ const AdminSidebar = () => {
     if (link.path === '/admin/customers' && hasPermission('customers')) return true;
     if (link.path === '/admin/deliveries' && hasPermission('deliveries')) return true;
     if (link.path === '/admin/stock' && hasPermission('stock')) return true;
-    if (link.path === '/admin/products' && hasPermission('stock')) return true;
+    if (link.path === '/admin/products' && (hasPermission('products') || hasPermission('stock'))) return true;
+    if (link.path === '/admin/retail-billing' && (hasPermission('invoices') || hasPermission('billing') || hasPermission('stock'))) return true;
     if (link.path === '/admin/invoices' && hasPermission('invoices')) return true;
+    if (link.path === '/admin/reports' && hasPermission('reports')) return true;
     if (link.path === '/admin/inquiries' && hasPermission('inquiries')) return true;
     return false;
   });
@@ -52,8 +55,8 @@ const AdminSidebar = () => {
       {/* Logo */}
       <div className="p-4 border-b border-primary-700/50">
         <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center flex-shrink-0">
-            <GiCow className="text-golden-400 text-xl" />
+          <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 bg-white shadow-sm">
+            <img src="/assets/dajiraj_logo.png" alt="Dajiraj Dairy & Farm" className="w-full h-full object-contain" />
           </div>
           {!collapsed && (
             <div className="min-w-0">

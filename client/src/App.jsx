@@ -25,6 +25,7 @@ import StaffPage from './pages/admin/StaffPage';
 import ProductsAdminPage from './pages/admin/ProductsAdminPage';
 import StockPage from './pages/admin/StockPage';
 import InvoicesPage from './pages/admin/InvoicesPage';
+import RetailBillingPage from './pages/admin/RetailBillingPage';
 import ReportsPage from './pages/admin/ReportsPage';
 import InquiriesPage from './pages/admin/InquiriesPage';
 import SettingsPage from './pages/admin/SettingsPage';
@@ -82,6 +83,7 @@ function App() {
             <Route path="products" element={<ProductsAdminPage />} />
             <Route path="stock" element={<StockPage />} />
             <Route path="invoices" element={<InvoicesPage />} />
+            <Route path="retail-billing" element={<RetailBillingPage />} />
             <Route path="reports" element={<ReportsPage />} />
             <Route path="inquiries" element={<InquiriesPage />} />
             <Route path="settings" element={<SettingsPage />} />

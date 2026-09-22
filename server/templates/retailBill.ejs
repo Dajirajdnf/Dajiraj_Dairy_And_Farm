@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Retail Bill <%= bill.billNumber %> — <%= business.businessName %></title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 13px;
+      color: #1a1a1a;
+      background: #fff;
+      padding: 0;
+    }
+
+    /* ===== Header ===== */
+    .bill-header {
+      background: linear-gradient(135deg, #1e5c1f 0%, #2d6a2e 60%, #3a7a3b 100%);
+      color: white;
+      padding: 24px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .brand-logo {
+      height: 60px;
+      width: auto;
+      object-fit: contain;
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 4px;
+    }
+    .brand-block .business-name {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      color: #ffffff;
+    }
+    .brand-block .tagline {
+      font-size: 11px;
+      color: #d4a843;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      margin-top: 3px;
+    }
+    .brand-block .secondary-tagline {
+      font-size: 10px;
+      color: #a8d0a8;
+      margin-top: 2px;
+    }
+    .bill-badge {
+      text-align: right;
+    }
+    .bill-badge .bill-label {
+      font-size: 24px;
+      font-weight: 900;
+      color: #d4a843;
+      letter-spacing: 2px;
+    }
+    .bill-badge .bill-number {
+      font-size: 13px;
+      color: #c8e6c9;
+      font-family: monospace;
+      margin-top: 3px;
+    }
+    .bill-badge .status-badge {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 3px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .status-paid { background: #4caf50; color: white; }
+    .status-partial { background: #2196f3; color: white; }
+    .status-pending { background: #ff9800; color: white; }
+
+    /* ===== Meta row ===== */
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      background: #f8fdf8;
+      padding: 16px 32px;
+      border-bottom: 2px solid #e8f5e9;
+      gap: 20px;
+    }
+    .meta-block label {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #888;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .meta-block .value {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+
+    /* ===== Main content ===== */
+    .content {
+      padding: 24px 32px;
+    }
+
+    /* Parties */
+    .parties {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    .party-block {
+      flex: 1;
+      background: #f9f9f9;
+      border-radius: 8px;
+      padding: 14px 16px;
+      border: 1px solid #eee;
+    }
+    .party-block.from {
+      border-left: 4px solid #2d6a2e;
+    }
+    .party-block.to {
+      border-left: 4px solid #d4a843;
+    }
+    .party-block label {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #888;
+      display: block;
+      margin-bottom: 6px;
+    }
+    .party-block .name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+    .party-block .detail {
+      font-size: 11px;
+      color: #555;
+      margin-top: 2px;
+      line-height: 1.5;
+    }
+
+    /* ===== Line Items Table ===== */
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #2d6a2e;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .section-title::before {
+      content: '';
+      display: inline-block;
+      width: 3px;
+      height: 14px;
+      background: #2d6a2e;
+      border-radius: 2px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #e0e0e0;
+      margin-bottom: 20px;
+    }
+    thead {
+      background: #2d6a2e;
+      color: white;
+    }
+    thead th {
+      padding: 10px 14px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      text-align: left;
+    }
+    tbody tr {
+      border-bottom: 1px solid #f0f0f0;
+    }
+    tbody tr:nth-child(even) {
+      background: #fafafa;
+    }
+    tbody td {
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #333;
+    }
+    tfoot {
+      background: #f1f8f1;
+      font-weight: 700;
+      border-top: 2px solid #2d6a2e;
+    }
+    tfoot td {
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #1e5c1f;
+    }
+
+    /* Financial Summary */
+    .financial-block {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 24px;
+    }
+    .financial-table {
+      width: 320px;
+    }
+    .fin-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 12px;
+      font-size: 12px;
+      color: #555;
+    }
+    .fin-row.total {
+      background: #2d6a2e;
+      color: white;
+      font-size: 15px;
+      font-weight: 800;
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin-top: 6px;
+    }
+
+    /* Footer */
+    .bill-footer {
+      border-top: 1px solid #e0e0e0;
+      padding: 20px 32px;
+      text-align: center;
+      background: #fafafa;
+      color: #777;
+      font-size: 11px;
+    }
+    .bill-footer .thank-you {
+      font-weight: 700;
+      color: #2d6a2e;
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="bill-header">
+    <div class="brand-section">
+      <% if (typeof logoDataUri !== 'undefined' && logoDataUri) { %>
+        <img src="<%= logoDataUri %>" alt="Dajiraj Logo" class="brand-logo" />
+      <% } %>
+      <div class="brand-block">
+        <div class="business-name"><%= business.businessName %></div>
+        <div class="tagline"><%= business.tagline %></div>
+        <div class="secondary-tagline"><%= business.secondaryTagline %></div>
+      </div>
+    </div>
+    <div class="bill-badge">
+      <div class="bill-label">RETAIL BILL</div>
+      <div class="bill-number"><%= bill.billNumber %></div>
+      <div>
+        <span class="status-badge status-<%= bill.paymentStatus.toLowerCase() %>">
+          <%= bill.paymentStatus %>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- META ROW -->
+  <div class="meta-row">
+    <div class="meta-block">
+      <label>Bill Date & Time</label>
+      <div class="value">
+        <%= new Date(bill.createdAt || bill.date || Date.now()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) %>
+        <%= new Date(bill.createdAt || bill.date || Date.now()).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) %>
+      </div>
+    </div>
+    <div class="meta-block">
+      <label>Payment Method</label>
+      <div class="value"><%= bill.paymentMethod || 'Cash' %></div>
+    </div>
+    <div class="meta-block">
+      <label>Total Items</label>
+      <div class="value"><%= bill.items ? bill.items.length : 0 %> Product(s)</div>
+    </div>
+    <div class="meta-block">
+      <label>Grand Total</label>
+      <div class="value" style="color:#2d6a2e;font-size:16px;">
+        ₹<%= (bill.grandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="content">
+
+    <!-- Parties -->
+    <div class="parties">
+      <div class="party-block from">
+        <label>Store / Billed By</label>
+        <div class="name"><%= business.businessName %></div>
+        <% if (business.phone) { %><div class="detail">📞 <%= business.phone %></div><% } %>
+        <% if (business.email) { %><div class="detail">✉ <%= business.email %></div><% } %>
+        <% if (business.address) { %><div class="detail">📍 <%= business.address %></div><% } %>
+      </div>
+      <div class="party-block to">
+        <label>Customer Details</label>
+        <div class="name"><%= bill.customerName || 'Walk-in Customer' %></div>
+        <% if (bill.customerPhone) { %><div class="detail">📞 <%= bill.customerPhone %></div><% } %>
+        <% if (bill.customerEmail) { %><div class="detail">✉ <%= bill.customerEmail %></div><% } %>
+        <div class="detail" style="color:#888;">Type: <%= bill.customerType === 'registered' ? 'Registered Customer' : 'Walk-in Counter' %></div>
+      </div>
+    </div>
+
+    <!-- Items Table -->
+    <div class="section-title">Purchased Items</div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 40px;">#</th>
+          <th>Item Description</th>
+          <th style="text-align: right;">Rate (₹)</th>
+          <th style="text-align: right;">Quantity</th>
+          <th style="text-align: right;">Amount (₹)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (bill.items && bill.items.length > 0) { %>
+          <% bill.items.forEach(function(item, idx) { %>
+            <tr>
+              <td style="color:#999;"><%= idx + 1 %></td>
+              <td>
+                <strong><%= item.name %></strong>
+              </td>
+              <td style="text-align: right;">₹<%= (item.price || 0).toFixed(2) %></td>
+              <td style="text-align: right;"><strong><%= item.quantity %> <%= item.unit || '' %></strong></td>
+              <td style="text-align: right;">₹<%= (item.amount || 0).toFixed(2) %></td>
+            </tr>
+          <% }); %>
+        <% } %>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="4" style="text-align: right;">TOTAL ITEM AMOUNT</td>
+          <td style="text-align: right;">₹<%= (bill.subtotal || 0).toFixed(2) %></td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <!-- Financial Summary -->
+    <div class="financial-block">
+      <div class="financial-table">
+        <div class="fin-row">
+          <span>Subtotal</span>
+          <span>₹<%= (bill.subtotal || 0).toFixed(2) %></span>
+        </div>
+        <% if (bill.discount && bill.discount > 0) { %>
+          <div class="fin-row" style="color: #2e7d32;">
+            <span>Discount</span>
+            <span>- ₹<%= (bill.discount || 0).toFixed(2) %></span>
+          </div>
+        <% } %>
+        <% if (bill.taxAmount && bill.taxAmount > 0) { %>
+          <div class="fin-row">
+            <span>Tax (<%= bill.taxRate || 0 %>%)</span>
+            <span>+ ₹<%= (bill.taxAmount || 0).toFixed(2) %></span>
+          </div>
+        <% } %>
+        <div class="fin-row total">
+          <span>Grand Total</span>
+          <span>₹<%= (bill.grandTotal || 0).toFixed(2) %></span>
+        </div>
+        <div class="fin-row" style="margin-top: 4px; font-weight: 600;">
+          <span>Paid Amount</span>
+          <span>₹<%= (bill.paidAmount !== undefined ? bill.paidAmount : bill.grandTotal || 0).toFixed(2) %></span>
+        </div>
+      </div>
+    </div>
+
+    <% if (bill.notes) { %>
+      <div style="background: #fdfbf7; border: 1px dashed #d4a843; border-radius: 6px; padding: 10px 14px; font-size: 12px; color: #666; margin-top: 12px;">
+        <strong>Note:</strong> <%= bill.notes %>
+      </div>
+    <% } %>
+
+  </div>
+
+  <!-- FOOTER -->
+  <div class="bill-footer">
+    <div class="thank-you">Thank you for visiting Dajiraj Dairy & Farm!</div>
+    <div>For inquiries, bulk orders, or subscriptions, call us at <%= business.phone || '+91 98765 43210' %></div>
+    <div><%= business.address %></div>
+  </div>
+
+</body>
+</html>

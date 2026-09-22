@@ -51,6 +51,7 @@ export const customerAPI = {
   getById: (id) => api.get(`/customers/${id}`),
   create: (data) => api.post('/customers', data),
   update: (id, data) => api.put(`/customers/${id}`, data),
+  toggleStatus: (id, active) => api.patch(`/customers/${id}/status`, { active }),
   delete: (id) => api.delete(`/customers/${id}`),
   reorder: (orders) => api.put('/customers/reorder', { orders }),
 };
@@ -61,6 +62,7 @@ export const staffAPI = {
   getById: (id) => api.get(`/staff/${id}`),
   create: (data) => api.post('/staff', data),
   update: (id, data) => api.put(`/staff/${id}`, data),
+  toggleStatus: (id, active) => api.patch(`/staff/${id}/status`, { active }),
   delete: (id) => api.delete(`/staff/${id}`),
 };
 
@@ -70,6 +72,7 @@ export const deliveryBoyAPI = {
   getById: (id) => api.get(`/delivery-boys/${id}`),
   create: (data) => api.post('/delivery-boys', data),
   update: (id, data) => api.put(`/delivery-boys/${id}`, data),
+  toggleStatus: (id, active) => api.patch(`/delivery-boys/${id}/status`, { active }),
   delete: (id) => api.delete(`/delivery-boys/${id}`),
 };
 
@@ -80,6 +83,7 @@ export const productAPI = {
   getById: (id) => api.get(`/products/${id}`),
   create: (data) => api.post('/products', data),
   update: (id, data) => api.put(`/products/${id}`, data),
+  toggleStatus: (id, active) => api.patch(`/products/${id}/status`, { active }),
   delete: (id) => api.delete(`/products/${id}`),
   adjustStock: (id, data) => api.post(`/products/${id}/stock`, data),
   getStockHistory: (id, params) => api.get(`/products/${id}/stock-history`, { params }),
@@ -137,3 +141,22 @@ export const settingsAPI = {
   update: (data) => api.put('/settings', data),
   testSmtp: () => api.post('/settings/test-smtp'),
 };
+
+// Stock API
+export const stockAPI = {
+  getAll: (params) => api.get('/stock', { params }),
+  getById: (id) => api.get(`/stock/${id}`),
+  create: (data) => api.post('/stock', data),
+  update: (id, data) => api.put(`/stock/${id}`, data),
+  delete: (id) => api.delete(`/stock/${id}`),
+};
+
+// Retail Bill API
+export const retailBillAPI = {
+  getAll: (params) => api.get('/retail-bills', { params }),
+  getById: (id) => api.get(`/retail-bills/${id}`),
+  create: (data) => api.post('/retail-bills', data),
+  downloadPdf: (id) => api.get(`/retail-bills/${id}/pdf`, { responseType: 'blob' }),
+  sendEmail: (id) => api.post(`/retail-bills/${id}/email`),
+};
+

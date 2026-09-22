@@ -56,8 +56,8 @@ const LoginPage = () => {
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-8 py-8 text-center">
-            <div className="w-16 h-16 bg-white/15 rounded-full flex items-center justify-center mx-auto mb-4">
-              <GiCow className="text-golden-400 text-3xl" />
+            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 p-2 shadow-sm">
+              <img src="/assets/dajiraj_logo.png" alt="Dajiraj Dairy & Farm" className="w-full h-full object-contain" />
             </div>
             <h1 className="text-xl font-bold text-white">DAJIRAJ DAIRY & FARM</h1>
             <p className="text-golden-300 text-sm mt-1 font-medium">Milking with Care • Farming with Love</p>

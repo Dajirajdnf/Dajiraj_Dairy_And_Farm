@@ -14,8 +14,8 @@ const Footer = ({ settings = {} }) => {
           {/* Brand */}
           <div className="lg:col-span-1">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center">
-                <GiCow className="text-golden-400 text-2xl" />
+              <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center bg-white shadow-sm">
+                <img src="/assets/dajiraj_logo.png" alt="Dajiraj Dairy & Farm" className="w-full h-full object-contain" />
               </div>
               <div>
                 <h3 className="font-bold text-lg">DAJIRAJ DAIRY</h3>

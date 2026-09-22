@@ -21,6 +21,8 @@ const dashboardRoutes = require('./routes/dashboardRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
 const cronRoutes = require('./routes/cronRoutes');
+const stockRoutes = require('./routes/stockRoutes');
+const retailBillRoutes = require('./routes/retailBillRoutes');
 
 const app = express();
 
@@ -131,6 +133,12 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/cron', cronRoutes);
+app.use('/api/stock', stockRoutes);
+app.use('/api/retail-bills', retailBillRoutes);
+
+// Static assets serving (logos, brand assets)
+app.use('/assets', express.static(path.join(__dirname, '..', 'assets')));
+app.use('/assets', express.static(path.join(__dirname, '..', 'client', 'public', 'assets')));
 
 // Health check with live diagnostics
 app.get('/api/health', (req, res) => {

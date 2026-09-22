@@ -85,26 +85,43 @@ const getProduct = async (req, res, next) => {
 // @route   POST /api/products
 const createProduct = async (req, res, next) => {
   try {
-    // Explicit field whitelist — prevents mass assignment
+    // Explicit field whitelist — prevents mass assignment and supports aliases
     const {
       name, sku, category, description, unit,
-      sellingPrice, purchasePrice, currentStock,
-      minimumStock, imageUrl, availability, displayOrder,
+      sellingPrice, price, purchasePrice,
+      currentStock, stock, minimumStock, minStockAlert,
+      imageUrl, availability, isPublic, displayOrder,
     } = req.body;
 
+    const trimmedName = name.trim();
+
+    // Check duplicate active product
+    const existing = await Product.findOne({
+      name: { $regex: new RegExp(`^${trimmedName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+      active: true,
+    });
+    if (existing) {
+      return res.status(400).json({ success: false, message: 'A product with this name already exists' });
+    }
+
+    const finalSellingPrice = sellingPrice !== undefined ? Number(sellingPrice) : Number(price);
+    const finalCurrentStock = currentStock !== undefined ? Number(currentStock) : (stock !== undefined ? Number(stock) : 0);
+    const finalMinStock = minimumStock !== undefined ? Number(minimumStock) : (minStockAlert !== undefined ? Number(minStockAlert) : 0);
+    const finalAvailability = availability !== undefined ? Boolean(availability) : (isPublic !== undefined ? Boolean(isPublic) : true);
+
     const product = await Product.create({
-      name,
+      name: trimmedName,
       sku: sku || '',
       category,
       description: description || '',
       unit: unit || 'litre',
-      sellingPrice,
-      purchasePrice: purchasePrice || 0,
-      currentStock: currentStock || 0,
-      minimumStock: minimumStock || 0,
+      sellingPrice: finalSellingPrice,
+      purchasePrice: purchasePrice ? Number(purchasePrice) : 0,
+      currentStock: finalCurrentStock,
+      minimumStock: finalMinStock,
       imageUrl: imageUrl || '',
-      availability: availability !== undefined ? availability : true,
-      displayOrder: displayOrder || 0,
+      availability: finalAvailability,
+      displayOrder: displayOrder ? Number(displayOrder) : 0,
     });
 
     logAudit({
@@ -133,22 +150,48 @@ const updateProduct = async (req, res, next) => {
     const allowedFields = {};
     const {
       name, sku, category, description, unit,
-      sellingPrice, purchasePrice, minimumStock,
-      imageUrl, availability, displayOrder, active,
+      sellingPrice, price, purchasePrice,
+      minimumStock, minStockAlert, currentStock, stock,
+      imageUrl, availability, isPublic, displayOrder, active, isActive,
     } = req.body;
 
-    if (name !== undefined) allowedFields.name = name;
+    if (name !== undefined) {
+      const trimmedName = name.trim();
+      const existing = await Product.findOne({
+        _id: { $ne: req.params.id },
+        name: { $regex: new RegExp(`^${trimmedName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+        active: true,
+      });
+      if (existing) {
+        return res.status(400).json({ success: false, message: 'Another product with this name already exists' });
+      }
+      allowedFields.name = trimmedName;
+    }
+
     if (sku !== undefined) allowedFields.sku = sku;
     if (category !== undefined) allowedFields.category = category;
     if (description !== undefined) allowedFields.description = description;
     if (unit !== undefined) allowedFields.unit = unit;
-    if (sellingPrice !== undefined) allowedFields.sellingPrice = sellingPrice;
-    if (purchasePrice !== undefined) allowedFields.purchasePrice = purchasePrice;
-    if (minimumStock !== undefined) allowedFields.minimumStock = minimumStock;
+    if (sellingPrice !== undefined) allowedFields.sellingPrice = Number(sellingPrice);
+    else if (price !== undefined) allowedFields.sellingPrice = Number(price);
+
+    if (purchasePrice !== undefined) allowedFields.purchasePrice = Number(purchasePrice);
+
+    if (minimumStock !== undefined) allowedFields.minimumStock = Number(minimumStock);
+    else if (minStockAlert !== undefined) allowedFields.minimumStock = Number(minStockAlert);
+
+    if (currentStock !== undefined) allowedFields.currentStock = Number(currentStock);
+    else if (stock !== undefined) allowedFields.currentStock = Number(stock);
+
     if (imageUrl !== undefined) allowedFields.imageUrl = imageUrl;
-    if (availability !== undefined) allowedFields.availability = availability;
-    if (displayOrder !== undefined) allowedFields.displayOrder = displayOrder;
-    if (active !== undefined) allowedFields.active = active;
+
+    if (availability !== undefined) allowedFields.availability = Boolean(availability);
+    else if (isPublic !== undefined) allowedFields.availability = Boolean(isPublic);
+
+    if (displayOrder !== undefined) allowedFields.displayOrder = Number(displayOrder);
+
+    if (active !== undefined) allowedFields.active = Boolean(active);
+    else if (isActive !== undefined) allowedFields.active = Boolean(isActive);
 
     const product = await Product.findByIdAndUpdate(
       req.params.id,
@@ -178,7 +221,7 @@ const updateProduct = async (req, res, next) => {
   }
 };
 
-// @desc    Delete product (soft)
+// @desc    Permanently delete product
 // @route   DELETE /api/products/:id
 const deleteProduct = async (req, res, next) => {
   try {
@@ -187,18 +230,48 @@ const deleteProduct = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
 
-    product.active = false;
-    await product.save();
+    await Product.findByIdAndDelete(req.params.id);
 
     logAudit({
-      action: 'PRODUCT_DEACTIVATED',
+      action: 'PRODUCT_DELETED',
       resourceType: 'Product',
       resourceId: product._id,
-      details: `Product ${product.name} deactivated`,
+      details: `Product ${product.name} permanently deleted`,
       req,
     });
 
-    res.json({ success: true, message: 'Product deactivated successfully' });
+    res.json({ success: true, message: 'Product permanently deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Toggle product active status
+// @route   PATCH /api/products/:id/status
+const toggleProductStatus = async (req, res, next) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+
+    const newActive = req.body.active !== undefined ? Boolean(req.body.active) : !product.active;
+    product.active = newActive;
+    await product.save();
+
+    logAudit({
+      action: newActive ? 'PRODUCT_ACTIVATED' : 'PRODUCT_DEACTIVATED',
+      resourceType: 'Product',
+      resourceId: product._id,
+      details: `Product ${product.name} marked as ${newActive ? 'Active' : 'Inactive'}`,
+      req,
+    });
+
+    res.json({
+      success: true,
+      message: `Product marked as ${newActive ? 'Active' : 'Inactive'}`,
+      data: product,
+    });
   } catch (error) {
     next(error);
   }
@@ -325,6 +398,7 @@ module.exports = {
   createProduct,
   updateProduct,
   deleteProduct,
+  toggleProductStatus,
   adjustStock,
   getStockHistory,
   getLowStockProducts,

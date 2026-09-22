@@ -37,8 +37,11 @@ const userSchema = new mongoose.Schema(
       customers: { type: Boolean, default: false },
       deliveries: { type: Boolean, default: false },
       stock: { type: Boolean, default: false },
+      products: { type: Boolean, default: false },
       invoices: { type: Boolean, default: false },
+      billing: { type: Boolean, default: false },
       inquiries: { type: Boolean, default: false },
+      reports: { type: Boolean, default: false },
     },
     address: {
       type: String,

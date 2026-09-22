@@ -124,7 +124,17 @@ const InvoicesPage = () => {
       window.URL.revokeObjectURL(url);
       toast.success('PDF downloaded!');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to generate PDF');
+      let errorMsg = 'Failed to generate PDF';
+      if (err.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const json = JSON.parse(text);
+          if (json.message) errorMsg = json.message;
+        } catch (_) {}
+      } else if (err.response?.data?.message) {
+        errorMsg = err.response.data.message;
+      }
+      toast.error(errorMsg);
     } finally {
       setDownloadingId(null);
     }

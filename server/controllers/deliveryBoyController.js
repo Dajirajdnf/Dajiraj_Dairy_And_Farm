@@ -9,7 +9,7 @@ const getDeliveryBoys = async (req, res, next) => {
     const { search, status, page = 1, limit = 20 } = req.query;
     const parsedLimit = Math.min(parseInt(limit) || 20, 100);
     const parsedPage = Math.max(parseInt(page) || 1, 1);
-    const query = { role: 'delivery' };
+    const query = { role: { $in: ['delivery', 'delivery_boy'] } };
 
     if (search) {
       const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -48,7 +48,7 @@ const getDeliveryBoys = async (req, res, next) => {
 // @route   GET /api/delivery-boys/:id
 const getDeliveryBoyById = async (req, res, next) => {
   try {
-    const deliveryBoy = await User.findOne({ _id: req.params.id, role: 'delivery' });
+    const deliveryBoy = await User.findOne({ _id: req.params.id, role: { $in: ['delivery', 'delivery_boy'] } });
     if (!deliveryBoy) {
       return res.status(404).json({ success: false, message: 'Delivery boy not found' });
     }
@@ -106,7 +106,7 @@ const updateDeliveryBoy = async (req, res, next) => {
     // Explicit field whitelist — prevents mass assignment and role escalation
     const { name, email, phone, address, vehicleInfo, assignedArea, active, password } = req.body;
 
-    const deliveryBoy = await User.findOne({ _id: req.params.id, role: 'delivery' });
+    const deliveryBoy = await User.findOne({ _id: req.params.id, role: { $in: ['delivery', 'delivery_boy'] } });
     if (!deliveryBoy) {
       return res.status(404).json({ success: false, message: 'Delivery boy not found' });
     }
@@ -148,30 +148,67 @@ const updateDeliveryBoy = async (req, res, next) => {
   }
 };
 
-// @desc    Delete delivery boy
+// @desc    Permanently delete delivery boy
 // @route   DELETE /api/delivery-boys/:id
 const deleteDeliveryBoy = async (req, res, next) => {
   try {
-    const deliveryBoy = await User.findOne({ _id: req.params.id, role: 'delivery' });
+    const deliveryBoy = await User.findOne({ _id: req.params.id, role: { $in: ['delivery', 'delivery_boy'] } });
     if (!deliveryBoy) {
       return res.status(404).json({ success: false, message: 'Delivery boy not found' });
     }
 
-    deliveryBoy.active = false;
-    await deliveryBoy.save();
+    await User.findByIdAndDelete(req.params.id);
 
     logAudit({
-      action: 'DELIVERY_BOY_DEACTIVATED',
+      action: 'DELIVERY_BOY_DELETED',
       resourceType: 'User',
       resourceId: deliveryBoy._id,
-      details: `Delivery boy ${deliveryBoy.name} deactivated`,
+      details: `Delivery boy ${deliveryBoy.name} permanently deleted`,
       req,
     });
 
-    res.json({ success: true, message: 'Delivery boy deactivated successfully' });
+    res.json({ success: true, message: 'Delivery boy permanently deleted successfully' });
   } catch (error) {
     next(error);
   }
 };
 
-module.exports = { getDeliveryBoys, getDeliveryBoyById, createDeliveryBoy, updateDeliveryBoy, deleteDeliveryBoy };
+// @desc    Toggle delivery boy active status
+// @route   PATCH /api/delivery-boys/:id/status
+const toggleDeliveryBoyStatus = async (req, res, next) => {
+  try {
+    const deliveryBoy = await User.findOne({ _id: req.params.id, role: { $in: ['delivery', 'delivery_boy'] } });
+    if (!deliveryBoy) {
+      return res.status(404).json({ success: false, message: 'Delivery boy not found' });
+    }
+
+    const newActive = req.body.active !== undefined ? Boolean(req.body.active) : !deliveryBoy.active;
+    deliveryBoy.active = newActive;
+    await deliveryBoy.save();
+
+    logAudit({
+      action: newActive ? 'DELIVERY_BOY_ACTIVATED' : 'DELIVERY_BOY_DEACTIVATED',
+      resourceType: 'User',
+      resourceId: deliveryBoy._id,
+      details: `Delivery boy ${deliveryBoy.name} marked as ${newActive ? 'Active' : 'Inactive'}`,
+      req,
+    });
+
+    res.json({
+      success: true,
+      message: `Delivery boy marked as ${newActive ? 'Active' : 'Inactive'}`,
+      data: deliveryBoy,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = {
+  getDeliveryBoys,
+  getDeliveryBoyById,
+  createDeliveryBoy,
+  updateDeliveryBoy,
+  deleteDeliveryBoy,
+  toggleDeliveryBoyStatus,
+};

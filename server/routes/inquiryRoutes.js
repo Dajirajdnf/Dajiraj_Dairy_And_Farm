@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize, checkPermission } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const { createInquiryValidator } = require('../validators/inquiryValidators');
 const { getInquiries, createInquiry, updateInquiry, deleteInquiry } = require('../controllers/inquiryController');
@@ -22,8 +22,8 @@ router.post('/', inquiryLimiter, validate(createInquiryValidator), createInquiry
 router.use(protect);
 router.use(authorize('admin', 'staff'));
 
-router.get('/', getInquiries);
-router.patch('/:id', updateInquiry);
+router.get('/', checkPermission('inquiries'), getInquiries);
+router.patch('/:id', checkPermission('inquiries'), updateInquiry);
 router.delete('/:id', authorize('admin'), deleteInquiry);
 
 module.exports = router;

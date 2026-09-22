@@ -176,7 +176,7 @@ const updateCustomer = async (req, res, next) => {
   }
 };
 
-// @desc    Delete/deactivate customer
+// @desc    Permanently delete customer
 // @route   DELETE /api/customers/:id
 const deleteCustomer = async (req, res, next) => {
   try {
@@ -185,21 +185,50 @@ const deleteCustomer = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Customer not found' });
     }
 
-    // Soft delete - deactivate
-    customer.active = false;
-    await customer.save();
+    await Customer.findByIdAndDelete(req.params.id);
 
     logAudit({
-      action: 'CUSTOMER_DEACTIVATED',
+      action: 'CUSTOMER_DELETED',
       resourceType: 'Customer',
       resourceId: customer._id,
-      details: `Customer ${customer.name} deactivated`,
+      details: `Customer ${customer.name} permanently deleted`,
       req,
     });
 
     res.json({
       success: true,
-      message: 'Customer deactivated successfully',
+      message: 'Customer permanently deleted',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Activate or deactivate customer
+// @route   PATCH /api/customers/:id/status
+const toggleCustomerStatus = async (req, res, next) => {
+  try {
+    const customer = await Customer.findById(req.params.id);
+    if (!customer) {
+      return res.status(404).json({ success: false, message: 'Customer not found' });
+    }
+
+    const newActive = req.body.active !== undefined ? Boolean(req.body.active) : !customer.active;
+    customer.active = newActive;
+    await customer.save();
+
+    logAudit({
+      action: newActive ? 'CUSTOMER_ACTIVATED' : 'CUSTOMER_DEACTIVATED',
+      resourceType: 'Customer',
+      resourceId: customer._id,
+      details: `Customer ${customer.name} marked as ${newActive ? 'Active' : 'Inactive'}`,
+      req,
+    });
+
+    res.json({
+      success: true,
+      message: `Customer marked as ${newActive ? 'Active' : 'Inactive'}`,
+      data: customer,
     });
   } catch (error) {
     next(error);
@@ -254,5 +283,6 @@ module.exports = {
   createCustomer,
   updateCustomer,
   deleteCustomer,
+  toggleCustomerStatus,
   reorderCustomers,
 };

@@ -70,14 +70,33 @@ const createStaff = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Email already exists' });
     }
 
-    // Whitelist permission keys
-    const safePermissions = {
-      customers: Boolean(permissions?.customers),
-      deliveries: Boolean(permissions?.deliveries),
-      stock: Boolean(permissions?.stock),
-      invoices: Boolean(permissions?.invoices),
-      inquiries: Boolean(permissions?.inquiries),
+    // Whitelist and normalize permission keys
+    const parsePermissions = (perms) => {
+      if (Array.isArray(perms)) {
+        return {
+          customers: perms.includes('customers'),
+          deliveries: perms.includes('deliveries'),
+          stock: perms.includes('stock') || perms.includes('products'),
+          products: perms.includes('products') || perms.includes('stock'),
+          invoices: perms.includes('invoices') || perms.includes('billing'),
+          billing: perms.includes('billing') || perms.includes('invoices'),
+          inquiries: perms.includes('inquiries'),
+          reports: perms.includes('reports'),
+        };
+      }
+      return {
+        customers: Boolean(perms?.customers),
+        deliveries: Boolean(perms?.deliveries),
+        stock: Boolean(perms?.stock || perms?.products),
+        products: Boolean(perms?.products || perms?.stock),
+        invoices: Boolean(perms?.invoices || perms?.billing),
+        billing: Boolean(perms?.billing || perms?.invoices),
+        inquiries: Boolean(perms?.inquiries),
+        reports: Boolean(perms?.reports),
+      };
     };
+
+    const safePermissions = parsePermissions(permissions);
 
     const staff = await User.create({
       name,
@@ -134,13 +153,29 @@ const updateStaff = async (req, res, next) => {
     if (password) staff.passwordHash = password;
     // Whitelist permissions keys
     if (permissions) {
-      staff.permissions = {
-        customers: Boolean(permissions.customers),
-        deliveries: Boolean(permissions.deliveries),
-        stock: Boolean(permissions.stock),
-        invoices: Boolean(permissions.invoices),
-        inquiries: Boolean(permissions.inquiries),
-      };
+      if (Array.isArray(permissions)) {
+        staff.permissions = {
+          customers: permissions.includes('customers'),
+          deliveries: permissions.includes('deliveries'),
+          stock: permissions.includes('stock') || permissions.includes('products'),
+          products: permissions.includes('products') || permissions.includes('stock'),
+          invoices: permissions.includes('invoices') || permissions.includes('billing'),
+          billing: permissions.includes('billing') || permissions.includes('invoices'),
+          inquiries: permissions.includes('inquiries'),
+          reports: permissions.includes('reports'),
+        };
+      } else {
+        staff.permissions = {
+          customers: Boolean(permissions.customers),
+          deliveries: Boolean(permissions.deliveries),
+          stock: Boolean(permissions.stock || permissions.products),
+          products: Boolean(permissions.products || permissions.stock),
+          invoices: Boolean(permissions.invoices || permissions.billing),
+          billing: Boolean(permissions.billing || permissions.invoices),
+          inquiries: Boolean(permissions.inquiries),
+          reports: Boolean(permissions.reports),
+        };
+      }
     }
     // role is NOT updatable here — prevents privilege escalation
 
@@ -164,30 +199,68 @@ const updateStaff = async (req, res, next) => {
   }
 };
 
-// @desc    Delete staff
+// @desc    Permanently delete staff
 // @route   DELETE /api/staff/:id
 const deleteStaff = async (req, res, next) => {
   try {
+    if (req.user && req.user._id.toString() === req.params.id) {
+      return res.status(400).json({ success: false, message: 'You cannot delete your own account' });
+    }
+
     const staff = await User.findOne({ _id: req.params.id, role: 'staff' });
     if (!staff) {
       return res.status(404).json({ success: false, message: 'Staff not found' });
     }
 
-    staff.active = false;
-    await staff.save();
+    await User.findByIdAndDelete(req.params.id);
 
     logAudit({
-      action: 'STAFF_DEACTIVATED',
+      action: 'STAFF_DELETED',
       resourceType: 'User',
       resourceId: staff._id,
-      details: `Staff ${staff.name} deactivated`,
+      details: `Staff ${staff.name} permanently deleted`,
       req,
     });
 
-    res.json({ success: true, message: 'Staff deactivated successfully' });
+    res.json({ success: true, message: 'Staff member permanently deleted successfully' });
   } catch (error) {
     next(error);
   }
 };
 
-module.exports = { getStaff, getStaffById, createStaff, updateStaff, deleteStaff };
+// @desc    Toggle staff active status
+// @route   PATCH /api/staff/:id/status
+const toggleStaffStatus = async (req, res, next) => {
+  try {
+    if (req.user && req.user._id.toString() === req.params.id) {
+      return res.status(400).json({ success: false, message: 'You cannot change your own status' });
+    }
+
+    const staff = await User.findOne({ _id: req.params.id, role: 'staff' });
+    if (!staff) {
+      return res.status(404).json({ success: false, message: 'Staff not found' });
+    }
+
+    const newActive = req.body.active !== undefined ? Boolean(req.body.active) : !staff.active;
+    staff.active = newActive;
+    await staff.save();
+
+    logAudit({
+      action: newActive ? 'STAFF_ACTIVATED' : 'STAFF_DEACTIVATED',
+      resourceType: 'User',
+      resourceId: staff._id,
+      details: `Staff ${staff.name} marked as ${newActive ? 'Active' : 'Inactive'}`,
+      req,
+    });
+
+    res.json({
+      success: true,
+      message: `Staff member marked as ${newActive ? 'Active' : 'Inactive'}`,
+      data: staff,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { getStaff, getStaffById, createStaff, updateStaff, deleteStaff, toggleStaffStatus };

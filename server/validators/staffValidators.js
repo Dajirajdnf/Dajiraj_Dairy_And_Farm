@@ -25,22 +25,12 @@ const createStaffValidator = [
     .isLength({ max: 300 }).withMessage('Address cannot exceed 300 characters'),
   body('permissions')
     .optional()
-    .isObject().withMessage('Permissions must be an object'),
-  body('permissions.customers')
-    .optional()
-    .isBoolean().withMessage('Permission value must be boolean'),
-  body('permissions.deliveries')
-    .optional()
-    .isBoolean().withMessage('Permission value must be boolean'),
-  body('permissions.stock')
-    .optional()
-    .isBoolean().withMessage('Permission value must be boolean'),
-  body('permissions.invoices')
-    .optional()
-    .isBoolean().withMessage('Permission value must be boolean'),
-  body('permissions.inquiries')
-    .optional()
-    .isBoolean().withMessage('Permission value must be boolean'),
+    .custom((val) => {
+      if (typeof val === 'object' && val !== null) {
+        return true;
+      }
+      throw new Error('Permissions must be an object or array');
+    }),
 ];
 
 const updateStaffValidator = [
@@ -65,6 +55,14 @@ const updateStaffValidator = [
   body('active')
     .optional()
     .isBoolean().withMessage('Active must be true or false'),
+  body('permissions')
+    .optional()
+    .custom((val) => {
+      if (typeof val === 'object' && val !== null) {
+        return true;
+      }
+      throw new Error('Permissions must be an object or array');
+    }),
 ];
 
 const createDeliveryBoyValidator = [

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { productAPI } from '../../services/api';
-import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineSearch, HiOutlineTag, HiOutlineExclamationCircle, HiOutlineEye, HiOutlineEyeOff } from 'react-icons/hi';
+import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineSearch, HiOutlineTag, HiOutlineExclamationCircle, HiOutlineEye, HiOutlineEyeOff, HiOutlineBan, HiOutlineCheckCircle } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 
 const CATEGORIES = ['milk', 'ghee', 'paneer', 'butter', 'curd', 'other'];
@@ -10,6 +10,7 @@ const ProductsAdminPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -70,15 +71,15 @@ const ProductsAdminPage = () => {
     setEditingProduct(product);
     setFormData({
       name: product.name || '',
-      category: product.category || 'milk',
+      category: product.category?.toLowerCase() || 'milk',
       description: product.description || '',
-      price: product.price || '',
+      price: product.sellingPrice ?? product.price ?? '',
       unit: product.unit || 'litre',
-      stock: product.stock ?? 0,
-      minStockAlert: product.minStockAlert ?? 10,
+      stock: product.currentStock ?? product.stock ?? 0,
+      minStockAlert: product.minimumStock ?? product.minStockAlert ?? 10,
       imageUrl: product.imageUrl || '',
-      isPublic: product.isPublic ?? true,
-      isActive: product.isActive ?? true,
+      isPublic: product.availability ?? product.isPublic ?? true,
+      isActive: product.active ?? product.isActive ?? true,
     });
     setModalOpen(true);
   };
@@ -89,9 +90,14 @@ const ProductsAdminPage = () => {
     try {
       const payload = {
         ...formData,
+        sellingPrice: Number(formData.price),
         price: Number(formData.price),
+        currentStock: Number(formData.stock),
         stock: Number(formData.stock),
+        minimumStock: Number(formData.minStockAlert),
         minStockAlert: Number(formData.minStockAlert),
+        availability: Boolean(formData.isPublic),
+        active: Boolean(formData.isActive),
       };
       if (editingProduct) {
         await productAPI.update(editingProduct._id, payload);
@@ -109,11 +115,23 @@ const ProductsAdminPage = () => {
     }
   };
 
+  const handleToggleStatus = async (product) => {
+    const isCurrentlyActive = product.active !== false && product.isActive !== false;
+    const newActive = !isCurrentlyActive;
+    try {
+      await productAPI.toggleStatus(product._id, newActive);
+      toast.success(`Product marked as ${newActive ? 'Active' : 'Inactive'}`);
+      fetchProducts();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update product status');
+    }
+  };
+
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this product?')) return;
+    if (!window.confirm('Are you sure you want to PERMANENTLY delete this product? This action cannot be undone.')) return;
     try {
       await productAPI.delete(id);
-      toast.success('Product deleted');
+      toast.success('Product permanently deleted');
       fetchProducts();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to delete product');
@@ -150,7 +168,13 @@ const ProductsAdminPage = () => {
     const matchSearch = p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchCat = selectedCategory ? p.category === selectedCategory : true;
-    return matchSearch && matchCat;
+    const isAct = p.active !== false && p.isActive !== false;
+    const matchStatus = statusFilter === 'all'
+      ? true
+      : statusFilter === 'active'
+        ? isAct
+        : !isAct;
+    return matchSearch && matchCat && matchStatus;
   });
 
   return (
@@ -171,7 +195,7 @@ const ProductsAdminPage = () => {
 
       {/* Filter Bar */}
       <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-3 flex-1 max-w-xl">
+        <div className="flex flex-wrap items-center gap-3 flex-1 max-w-2xl">
           <div className="relative flex-1 min-w-[200px]">
             <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
@@ -192,6 +216,15 @@ const ProductsAdminPage = () => {
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 bg-white"
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active Only</option>
+            <option value="inactive">Inactive Only</option>
+          </select>
         </div>
         <div className="text-sm text-gray-500">
           Showing <span className="font-semibold text-gray-800">{filteredProducts.length}</span> products
@@ -211,7 +244,11 @@ const ProductsAdminPage = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProducts.map((product) => {
-            const isLowStock = product.stock <= (product.minStockAlert || 5);
+            const priceVal = product.sellingPrice ?? product.price ?? 0;
+            const stockVal = product.currentStock ?? product.stock ?? 0;
+            const minStockVal = product.minimumStock ?? product.minStockAlert ?? 5;
+            const isLowStock = stockVal <= minStockVal;
+            const isVisible = product.availability ?? product.isPublic ?? true;
             return (
               <div key={product._id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition flex flex-col justify-between">
                 <div>
@@ -226,14 +263,19 @@ const ProductsAdminPage = () => {
                     <span className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-full text-xs font-semibold text-gray-700 capitalize shadow-sm">
                       {product.category}
                     </span>
-                    <div className="absolute top-3 right-3 flex items-center gap-1">
-                      {product.isPublic ? (
-                        <span className="bg-emerald-500/90 text-white p-1 rounded-full text-xs" title="Visible in public store">
-                          <HiOutlineEye className="w-4 h-4" />
+                    <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase shadow-sm ${
+                        product.active !== false ? 'bg-emerald-600 text-white' : 'bg-gray-600 text-white'
+                      }`}>
+                        {product.active !== false ? 'Active' : 'Inactive'}
+                      </span>
+                      {isVisible ? (
+                        <span className="bg-emerald-500/90 text-white p-1 rounded-full text-xs shadow-sm" title="Visible in public store">
+                          <HiOutlineEye className="w-3.5 h-3.5" />
                         </span>
                       ) : (
-                        <span className="bg-gray-500/90 text-white p-1 rounded-full text-xs" title="Hidden from public store">
-                          <HiOutlineEyeOff className="w-4 h-4" />
+                        <span className="bg-gray-500/90 text-white p-1 rounded-full text-xs shadow-sm" title="Hidden from public store">
+                          <HiOutlineEyeOff className="w-3.5 h-3.5" />
                         </span>
                       )}
                     </div>
@@ -243,7 +285,7 @@ const ProductsAdminPage = () => {
                     <div className="flex items-baseline justify-between">
                       <h3 className="font-bold text-gray-900 text-lg">{product.name}</h3>
                       <div className="text-right">
-                        <span className="text-xl font-extrabold text-emerald-700">₹{product.price}</span>
+                        <span className="text-xl font-extrabold text-emerald-700">₹{priceVal}</span>
                         <span className="text-xs text-gray-500 block">per {product.unit}</span>
                       </div>
                     </div>
@@ -255,7 +297,7 @@ const ProductsAdminPage = () => {
                       <div>
                         <span className="text-gray-400">Stock: </span>
                         <span className={`font-bold ${isLowStock ? 'text-red-600' : 'text-gray-800'}`}>
-                          {product.stock} {product.unit}s
+                          {stockVal} {product.unit}s
                         </span>
                         {isLowStock && (
                           <span className="inline-flex items-center gap-0.5 ml-1.5 text-red-500 font-semibold">
@@ -273,7 +315,22 @@ const ProductsAdminPage = () => {
                   </div>
                 </div>
 
-                <div className="px-5 pb-5 pt-2 border-t border-gray-50 flex items-center justify-end gap-2">
+                <div className="px-5 pb-5 pt-2 border-t border-gray-50 flex items-center justify-end gap-1.5">
+                  <button
+                    onClick={() => handleToggleStatus(product)}
+                    className={`p-2 rounded-lg transition ${
+                      product.active !== false
+                        ? 'text-amber-600 hover:bg-amber-50'
+                        : 'text-emerald-600 hover:bg-emerald-50'
+                    }`}
+                    title={product.active !== false ? 'Deactivate Product' : 'Activate Product'}
+                  >
+                    {product.active !== false ? (
+                      <HiOutlineBan className="w-4 h-4" />
+                    ) : (
+                      <HiOutlineCheckCircle className="w-4 h-4" />
+                    )}
+                  </button>
                   <button
                     onClick={() => handleOpenEdit(product)}
                     className="p-2 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
@@ -283,8 +340,8 @@ const ProductsAdminPage = () => {
                   </button>
                   <button
                     onClick={() => handleDelete(product._id)}
-                    className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-                    title="Delete"
+                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                    title="Permanently Delete"
                   >
                     <HiOutlineTrash className="w-4 h-4" />
                   </button>

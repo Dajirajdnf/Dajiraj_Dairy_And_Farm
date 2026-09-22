@@ -9,6 +9,25 @@ const { startOfDay, endOfDay, startOfMonth, endOfMonth, subMonths, format } = re
 const puppeteer = require('puppeteer');
 const ejs = require('ejs');
 const path = require('path');
+const fs = require('fs');
+
+// Helper: read logo as base64 data URI
+const getLogoDataUri = () => {
+  const possiblePaths = [
+    path.join(__dirname, '..', '..', 'assets', 'dajiraj_logo.png'),
+    path.join(__dirname, '..', '..', 'client', 'public', 'assets', 'dajiraj_logo.png'),
+    path.join(__dirname, '..', 'public', 'assets', 'dajiraj_logo.png'),
+  ];
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      try {
+        const data = fs.readFileSync(p);
+        return `data:image/png;base64,${data.toString('base64')}`;
+      } catch (_) {}
+    }
+  }
+  return null;
+};
 
 // Helper: get Puppeteer browser instance (serverless-aware)
 const getBrowser = async () => {
@@ -37,7 +56,8 @@ const getBrowser = async () => {
 // Helper: render invoice HTML
 const renderInvoiceHtml = async (invoice, business) => {
   const templatePath = path.join(__dirname, '..', 'templates', 'invoice.ejs');
-  return await ejs.renderFile(templatePath, { invoice, business });
+  const logoDataUri = getLogoDataUri();
+  return await ejs.renderFile(templatePath, { invoice, business, logoDataUri });
 };
 
 // Helper: render invoice HTML → PDF Buffer

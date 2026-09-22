@@ -2,7 +2,7 @@ const Inquiry = require('../models/Inquiry');
 const mongoose = require('mongoose');
 const { logAudit } = require('../utils/auditLogger');
 
-const VALID_STATUSES = ['new', 'read', 'resolved'];
+const VALID_STATUSES = ['new', 'contacted', 'converted', 'closed', 'read', 'resolved'];
 
 // @desc    Get all inquiries
 // @route   GET /api/inquiries
@@ -81,16 +81,26 @@ const createInquiry = async (req, res, next) => {
 // @route   PATCH /api/inquiries/:id
 const updateInquiry = async (req, res, next) => {
   try {
-    const { status } = req.body;
+    const { status, notes } = req.body;
 
-    // Whitelist status values
-    if (!VALID_STATUSES.includes(status)) {
-      return res.status(400).json({ success: false, message: 'Invalid status value' });
+    const updates = {};
+    if (status !== undefined) {
+      if (!VALID_STATUSES.includes(status)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid status value. Must be one of: ${VALID_STATUSES.join(', ')}`,
+        });
+      }
+      updates.status = status;
+    }
+
+    if (notes !== undefined) {
+      updates.notes = String(notes).slice(0, 1000);
     }
 
     const inquiry = await Inquiry.findByIdAndUpdate(
       req.params.id,
-      { status }, // Only update status field
+      updates,
       { new: true, runValidators: true }
     );
 
@@ -102,13 +112,13 @@ const updateInquiry = async (req, res, next) => {
       action: 'INQUIRY_STATUS_UPDATED',
       resourceType: 'Inquiry',
       resourceId: inquiry._id,
-      details: `Inquiry status changed to ${status}`,
+      details: `Inquiry status changed to ${inquiry.status}`,
       req,
     });
 
     res.json({
       success: true,
-      message: `Inquiry marked as ${status}`,
+      message: `Inquiry marked as ${inquiry.status}`,
       data: inquiry,
     });
   } catch (error) {

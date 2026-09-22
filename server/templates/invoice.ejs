@@ -299,19 +299,24 @@
 
   <!-- HEADER -->
   <div class="invoice-header">
-    <div class="brand-block">
-      <div class="business-name"><%= business.businessName %></div>
-      <div class="tagline"><%= business.tagline %></div>
-      <div class="secondary-tagline"><%= business.secondaryTagline %></div>
-      <% if (business.phone) { %>
-        <div style="font-size:10px;color:#a8d0a8;margin-top:6px;">📞 <%= business.phone %></div>
+    <div style="display: flex; align-items: center; gap: 16px;">
+      <% if (typeof logoDataUri !== 'undefined' && logoDataUri) { %>
+        <img src="<%= logoDataUri %>" alt="Dajiraj Logo" style="height: 58px; width: auto; object-fit: contain; background: #ffffff; border-radius: 8px; padding: 4px;" />
       <% } %>
-      <% if (business.email) { %>
-        <div style="font-size:10px;color:#a8d0a8;">✉ <%= business.email %></div>
-      <% } %>
-      <% if (business.address) { %>
-        <div style="font-size:10px;color:#a8d0a8;max-width:260px;">📍 <%= business.address %></div>
-      <% } %>
+      <div class="brand-block">
+        <div class="business-name"><%= business.businessName %></div>
+        <div class="tagline"><%= business.tagline %></div>
+        <div class="secondary-tagline"><%= business.secondaryTagline %></div>
+        <% if (business.phone) { %>
+          <div style="font-size:10px;color:#a8d0a8;margin-top:6px;">📞 <%= business.phone %></div>
+        <% } %>
+        <% if (business.email) { %>
+          <div style="font-size:10px;color:#a8d0a8;">✉ <%= business.email %></div>
+        <% } %>
+        <% if (business.address) { %>
+          <div style="font-size:10px;color:#a8d0a8;max-width:260px;">📍 <%= business.address %></div>
+        <% } %>
+      </div>
     </div>
     <div class="invoice-badge">
       <div class="invoice-label">INVOICE</div>

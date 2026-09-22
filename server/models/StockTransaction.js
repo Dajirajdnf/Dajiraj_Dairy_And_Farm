@@ -16,6 +16,34 @@ const stockTransactionSchema = new mongoose.Schema(
       type: Number,
       required: [true, 'Quantity is required'],
     },
+    unit: {
+      type: String,
+      default: 'litre',
+    },
+    purchasePrice: {
+      type: Number,
+      default: 0,
+      min: [0, 'Purchase price cannot be negative'],
+    },
+    sellingPrice: {
+      type: Number,
+      default: 0,
+      min: [0, 'Selling price cannot be negative'],
+    },
+    supplier: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    date: {
+      type: Date,
+      default: Date.now,
+    },
+    notes: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     previousStock: {
       type: Number,
       default: 0,

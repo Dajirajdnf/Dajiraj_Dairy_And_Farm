@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { staffAPI } from '../../services/api';
-import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineSearch, HiOutlineUserGroup, HiOutlinePhone, HiOutlineMail, HiOutlineShieldCheck } from 'react-icons/hi';
+import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineSearch, HiOutlineUserGroup, HiOutlinePhone, HiOutlineMail, HiOutlineShieldCheck, HiOutlineBan, HiOutlineCheckCircle } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 
 const AVAILABLE_PERMISSIONS = [
   { id: 'customers', label: 'Customers' },
   { id: 'deliveries', label: 'Deliveries' },
-  { id: 'products', label: 'Products & Stock' },
+  { id: 'stock', label: 'Products & Stock' },
   { id: 'invoices', label: 'Invoices & Billing' },
   { id: 'reports', label: 'Reports' },
   { id: 'inquiries', label: 'Inquiries' },
@@ -16,6 +16,7 @@ const StaffPage = () => {
   const [staffList, setStaffList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -61,6 +62,12 @@ const StaffPage = () => {
     setModalOpen(true);
   };
 
+  const parsePermsToArray = (perms) => {
+    if (!perms) return [];
+    if (Array.isArray(perms)) return perms;
+    return Object.keys(perms).filter((k) => perms[k]);
+  };
+
   const handleOpenEdit = (staff) => {
     setEditingStaff(staff);
     setFormData({
@@ -69,8 +76,8 @@ const StaffPage = () => {
       email: staff.email || '',
       password: '',
       role: staff.role || 'staff',
-      status: staff.status || 'active',
-      permissions: staff.permissions || [],
+      status: staff.active !== false ? 'active' : 'inactive',
+      permissions: parsePermsToArray(staff.permissions),
     });
     setModalOpen(true);
   };
@@ -91,7 +98,26 @@ const StaffPage = () => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const payload = { ...formData };
+      const permsArray = Array.isArray(formData.permissions)
+        ? formData.permissions
+        : parsePermsToArray(formData.permissions);
+
+      const permsObject = {
+        customers: permsArray.includes('customers'),
+        deliveries: permsArray.includes('deliveries'),
+        stock: permsArray.includes('stock') || permsArray.includes('products'),
+        products: permsArray.includes('products') || permsArray.includes('stock'),
+        invoices: permsArray.includes('invoices') || permsArray.includes('billing'),
+        billing: permsArray.includes('billing') || permsArray.includes('invoices'),
+        inquiries: permsArray.includes('inquiries'),
+        reports: permsArray.includes('reports'),
+      };
+
+      const payload = {
+        ...formData,
+        active: formData.status === 'active',
+        permissions: permsObject,
+      };
       if (!payload.password && editingStaff) {
         delete payload.password;
       }
@@ -111,22 +137,41 @@ const StaffPage = () => {
     }
   };
 
+  const handleToggleStatus = async (staff) => {
+    const isCurrentlyActive = staff.active !== false;
+    const newActive = !isCurrentlyActive;
+    try {
+      await staffAPI.toggleStatus(staff._id, newActive);
+      toast.success(`Staff member marked as ${newActive ? 'Active' : 'Inactive'}`);
+      fetchStaff();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update status');
+    }
+  };
+
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to remove this staff member?')) return;
+    if (!window.confirm('Are you sure you want to PERMANENTLY delete this staff member? This action cannot be undone.')) return;
     try {
       await staffAPI.delete(id);
-      toast.success('Staff member removed');
+      toast.success('Staff member permanently deleted');
       fetchStaff();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to delete staff member');
     }
   };
 
-  const filteredStaff = staffList.filter(s =>
-    s.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.phone?.includes(searchTerm) ||
-    s.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredStaff = staffList.filter(s => {
+    const matchSearch = s.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.phone?.includes(searchTerm) ||
+      s.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    const isAct = s.active !== false;
+    const matchStatus = statusFilter === 'all'
+      ? true
+      : statusFilter === 'active'
+        ? isAct
+        : !isAct;
+    return matchSearch && matchStatus;
+  });
 
   return (
     <div className="space-y-6">
@@ -145,16 +190,27 @@ const StaffPage = () => {
       </div>
 
       {/* Filter / Search Bar */}
-      <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-md">
-          <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <input
-            type="text"
-            placeholder="Search staff by name, email, or phone..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          />
+      <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3 flex-1 max-w-xl">
+          <div className="relative flex-1 min-w-[200px]">
+            <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search staff by name, email, or phone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 bg-white"
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active Only</option>
+            <option value="inactive">Inactive Only</option>
+          </select>
         </div>
         <div className="text-sm text-gray-500">
           Total Staff: <span className="font-semibold text-gray-800">{filteredStaff.length}</span>
@@ -188,14 +244,31 @@ const StaffPage = () => {
                           {staff.role}
                         </span>
                         <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase ${
-                          staff.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600'
+                          staff.active !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-gray-100 text-gray-600 border border-gray-200'
                         }`}>
-                          {staff.status}
+                          {staff.active !== false ? 'Active' : 'Inactive'}
                         </span>
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
+                    {staff.role !== 'admin' && (
+                      <button
+                        onClick={() => handleToggleStatus(staff)}
+                        className={`p-1.5 rounded-lg transition ${
+                          staff.active !== false
+                            ? 'text-amber-600 hover:bg-amber-50'
+                            : 'text-emerald-600 hover:bg-emerald-50'
+                        }`}
+                        title={staff.active !== false ? 'Deactivate Staff Member' : 'Activate Staff Member'}
+                      >
+                        {staff.active !== false ? (
+                          <HiOutlineBan className="w-4 h-4" />
+                        ) : (
+                          <HiOutlineCheckCircle className="w-4 h-4" />
+                        )}
+                      </button>
+                    )}
                     <button
                       onClick={() => handleOpenEdit(staff)}
                       className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
@@ -207,7 +280,7 @@ const StaffPage = () => {
                       <button
                         onClick={() => handleDelete(staff._id)}
                         className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-                        title="Delete"
+                        title="Permanently Delete"
                       >
                         <HiOutlineTrash className="w-4 h-4" />
                       </button>
@@ -235,14 +308,14 @@ const StaffPage = () => {
                   <HiOutlineShieldCheck className="w-3.5 h-3.5" /> Permissions:
                 </p>
                 <div className="flex flex-wrap gap-1">
-                  {staff.permissions && staff.permissions.length > 0 ? (
-                    staff.permissions.map(perm => (
+                  {parsePermsToArray(staff.permissions).length > 0 ? (
+                    parsePermsToArray(staff.permissions).map((perm) => (
                       <span key={perm} className="text-[10px] bg-gray-100 text-gray-700 px-2 py-0.5 rounded capitalize">
                         {perm}
                       </span>
                     ))
                   ) : (
-                    <span className="text-[10px] text-gray-400 italic">Full or default access</span>
+                    <span className="text-[10px] text-gray-400 italic">No modules granted</span>
                   )}
                 </div>
               </div>

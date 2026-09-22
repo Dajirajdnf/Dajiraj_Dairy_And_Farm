@@ -28,8 +28,8 @@ const PublicNavbar = () => {
         <div className="flex justify-between items-center h-16 md:h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-primary-500 rounded-full flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-              <GiCow className="text-white text-xl md:text-2xl" />
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden flex items-center justify-center shadow-md group-hover:scale-105 transition-transform bg-white">
+              <img src="/assets/dajiraj_logo.png" alt="Dajiraj Dairy & Farm" className="w-full h-full object-contain" />
             </div>
             <div className="hidden sm:block">
               <h1 className="text-base md:text-lg font-bold text-primary-700 leading-tight">DAJIRAJ DAIRY</h1>
